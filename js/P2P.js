@@ -98,28 +98,18 @@ async function call() {
   pc2 = new RTCPeerConnection(configuration);
   console.log('Created remote peer connection object pc2');
 
-  // These methods are only possible when the pc's have been defined as
-  // RTCPeerConnection objects.
+  // Create an icecandidate 
   pc2.addEventListener('icecandidate', e => onIceCandidate(pc2, e));
-  
-  // Console logs information
   pc1.addEventListener('iceconnectionstatechange', e => onIceStateChange(pc1, e));
   pc2.addEventListener('iceconnectionstatechange', e => onIceStateChange(pc2, e));
-  
-  // Setting the video when the track of the pc2 object changesQ
   pc2.addEventListener('track', gotRemoteStream);
 
-  // Add this track to the local machine so it can be viewed from there
   localStream.getTracks().forEach(track => pc1.addTrack(track, localStream));
   console.log('Added local stream to pc1');
 
   try {
     console.log('pc1 createOffer start');
-
-    // Creates a SDP item to connect to the other PC
     const offer = await pc1.createOffer(offerOptions);
-
-    // Set the external pcs SDP information on the local machine.
     await onCreateOfferSuccess(offer);
   } catch (e) {
     onCreateSessionDescriptionError(e);
@@ -199,8 +189,6 @@ async function onCreateAnswerSuccess(desc) {
 
 async function onIceCandidate(pc, event) {
   try {
-
-    // Add the SDP info to the other pc
     await (getOtherPc(pc).addIceCandidate(event.candidate));
     onAddIceCandidateSuccess(pc);
   } catch (e) {
