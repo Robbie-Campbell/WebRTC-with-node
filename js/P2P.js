@@ -52,9 +52,14 @@ async function start() {
   console.log('Requesting local stream');
   startButton.disabled = true;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+    // Asks the user for permission to use their camera, then start up a video stream
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true}); 
     console.log('Received local stream');
+
+    // Set the video object to show the user video
     localVideo.srcObject = stream;
+
+    // Set the localStream variable to store the newly added stream object globally
     localStream = stream;
     callButton.disabled = false;
   } catch (e) {
@@ -66,33 +71,55 @@ async function call() {
   callButton.disabled = true;
   hangupButton.disabled = false;
   console.log('Starting call');
+
+  // This stores the time of the call start in memory
   startTime = window.performance.now();
+
+  // Get all of the current video and audio participants
   const videoTracks = localStream.getVideoTracks();
   const audioTracks = localStream.getAudioTracks();
+
+  // Print information about audio and video tracks
   if (videoTracks.length > 0) {
     console.log(`Using video device: ${videoTracks[0].label}`);
   }
   if (audioTracks.length > 0) {
     console.log(`Using audio device: ${audioTracks[0].label}`);
   }
+
+  // Default Configuration
   const configuration = {};
   console.log('RTCPeerConnection configuration:', configuration);
+
+  // PC1 assign as an RTC object
   pc1 = new RTCPeerConnection(configuration);
   console.log('Created local peer connection object pc1');
   pc1.addEventListener('icecandidate', e => onIceCandidate(pc1, e));
   pc2 = new RTCPeerConnection(configuration);
   console.log('Created remote peer connection object pc2');
+
+  // These methods are only possible when the pc's have been defined as
+  // RTCPeerConnection objects.
   pc2.addEventListener('icecandidate', e => onIceCandidate(pc2, e));
+  
+  // Console logs information
   pc1.addEventListener('iceconnectionstatechange', e => onIceStateChange(pc1, e));
   pc2.addEventListener('iceconnectionstatechange', e => onIceStateChange(pc2, e));
+  
+  // Setting the video when the track of the pc2 object changesQ
   pc2.addEventListener('track', gotRemoteStream);
 
+  // Add this track to the local machine so it can be viewed from there
   localStream.getTracks().forEach(track => pc1.addTrack(track, localStream));
   console.log('Added local stream to pc1');
 
   try {
     console.log('pc1 createOffer start');
+
+    // Creates a SDP item to connect to the other PC
     const offer = await pc1.createOffer(offerOptions);
+
+    // Set the external pcs SDP information on the local machine.
     await onCreateOfferSuccess(offer);
   } catch (e) {
     onCreateSessionDescriptionError(e);
@@ -172,6 +199,8 @@ async function onCreateAnswerSuccess(desc) {
 
 async function onIceCandidate(pc, event) {
   try {
+
+    // Add the SDP info to the other pc
     await (getOtherPc(pc).addIceCandidate(event.candidate));
     onAddIceCandidateSuccess(pc);
   } catch (e) {
